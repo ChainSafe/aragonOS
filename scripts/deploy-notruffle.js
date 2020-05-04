@@ -100,7 +100,7 @@ async function deploy() {
 
 		let ensFactory = await deployContract(ENSFactory, owner)
 
-  		let receipt = await ensFactory.methods.newENS('0xE8Aa2e7B68a7aa125ec5C8938647570811A91aE6').send({
+  		let receipt = await ensFactory.methods.newENS(owner).send({
   			from: owner,
   			gas: 90000000,
   		})
