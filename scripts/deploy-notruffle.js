@@ -11,6 +11,9 @@ const APMRegistryFactory = require('../build/contracts/APMRegistryFactory')
 const ENS = require('../build/contracts/ENS')
 const ENSFactory = require('../build/contracts/ENSFactory')
 
+const ACL = require('../build/contracts/ACL')
+const Kernel = require('../build/contracts/Kernel')
+
 const defaultOwner = process.env.OWNER
 const defaultDaoFactoryAddress = process.env.DAO_FACTORY
 const defaultENSAddress = process.env.ENS
@@ -38,7 +41,7 @@ async function deployContract(contractData, sender) {
     })
     .send({
       from: sender,
-      gas: 3000000,
+      gas: 5000000,
       gasPrice: 1
     })
     .then(function(contractInstance) {
@@ -55,11 +58,16 @@ async function deployContract(contractData, sender) {
     });
 }
 
+async function deployDaoFactory(from) {
+
+}
+
 async function deploy() {
 	console.log('Deploying APM...')
 
 	let ensAddress = defaultENSAddress
 	let owner = defaultOwner
+	let daoFactoryAddress = defaultDaoFactoryAddress
 
 	const accounts = await getAccounts(web3)
 	if (!owner) {
@@ -88,7 +96,30 @@ async function deploy() {
 	console.log(`TLD: ${tldName} (${tldHash})`)
 	console.log(`Label: ${labelName} (${labelHash})`)
 
+	console.log('=========')
+	console.log('Deploying APM bases...')
 
+  // const apmRegistryBase = await APMRegistry.new()
+  // await logDeploy(apmRegistryBase, { verbose })
+  // const apmRepoBase = await Repo.new()
+  // await logDeploy(apmRepoBase, { verbose })
+  // const ensSubdomainRegistrarBase = await ENSSubdomainRegistrar.new()
+  // await logDeploy(ensSubdomainRegistrarBase, { verbose })
+
+  	let apmRegistryBase = await deployContract(APMRegistry, owner)
+  	let apmRepoBase = await deployContract(Repo, owner)
+  	let ensSubdomainRegistrarBase = await deployContract(ENSSubdomainRegistrar, owner)
+
+	let daoFactory
+	if (daoFactoryAddress) {
+		//daoFactory = DAOFactory.at(daoFactoryAddress)
+		daoFactory = new web3.eth.Contract(DAOFactory.abi, daoFactoryAddress)
+		const hasEVMScripts = await daoFactory.regFactory() !== ZERO_ADDR
+		console.log(`Using provided DAOFactory (with${hasEVMScripts ? '' : 'out' } EVMScripts):`, daoFactoryAddress)
+	} else {
+		console.log('Deploying DAOFactory with EVMScripts...')
+		//daoFactory = await deployDaoFactory(owner)//(await deployDaoFactory(null, { artifacts, withEvmScriptRegistryFactory: true, verbose: false })).daoFactory
+	}
 }
 
 deploy()
