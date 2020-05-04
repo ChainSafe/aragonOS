@@ -29,12 +29,6 @@ const apmNode = namehash(`${labelName}.${tldName}`)
 
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000'
 
-// async function getCurrentAccount() {
-//   const currentAccounts = await web3.eth.getAccounts();
-//   console.log("Unlocked account address: \t", currentAccounts[0]);
-//   return currentAccounts[0];
-// }
-
 async function deployContract(contractData, sender, args=[]) {
   const testContract = new web3.eth.Contract(contractData.abi);
   return testContract
@@ -102,7 +96,7 @@ async function deploy() {
 
   		let receipt = await ensFactory.methods.newENS(owner).send({
   			from: owner,
-  			gas: 90000000,
+  			gas: 6000000,
   		})
 		 .on('transactionHash', function(hash){
 			console.log(hash)
@@ -145,7 +139,6 @@ async function deploy() {
 		console.log(`Using provided DAOFactory (with${hasEVMScripts ? '' : 'out' } EVMScripts):`, daoFactoryAddress)
 	} else {
 		console.log('Deploying DAOFactory with EVMScripts...')
-		//daoFactory = await deployDaoFactory(owner)//(await deployDaoFactory(null, { artifacts, withEvmScriptRegistryFactory: true, verbose: false })).daoFactory
 		daoFactory = (await deployDaoFactory(owner)).daoFactory
 	}
 
