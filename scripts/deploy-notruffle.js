@@ -59,10 +59,10 @@ async function deployDaoFactory(from) {
 	let kernelBase = await deployContract(Kernel, from, [true])
 	let aclBase = await deployContract(ACL, from)
 	let evmScriptRegistryFactory = await deployContract(EVMScriptRegistryFactory, from)
-	let daoFactory = await deployContract(DAOFactory, from,    
-		[kernelBase.options.address,
-	    aclBase.options.address,
-	    evmScriptRegistryFactory ? evmScriptRegistryFactory.options.address : ZERO_ADDR
+	let daoFactory = await deployContract(DAOFactory, from, [
+		kernelBase.options.address,
+		aclBase.options.address,
+		evmScriptRegistryFactory ? evmScriptRegistryFactory.options.address : ZERO_ADDR
     ])
 
     return {
@@ -180,7 +180,7 @@ async function deploy() {
 	})
 
 	console.log('=========')
-	const apmAddr = receipt.events["DeployAPM"].returnValues['apm']//receipt.logs.filter(l => l.event == 'DeployAPM')[0].args.apm
+	const apmAddr = receipt.events["DeployAPM"].returnValues['apm']
 	console.log('# APM:')
 	console.log('Address:', apmAddr)
 	console.log('Transaction hash:', receipt.transactionHash)
