@@ -51,8 +51,9 @@
   },
   "dependencies": {
     "@aragon/truffle-config-v4": "^1.0.1",
+    "homedir": "^0.6.0",
     "mkdirp": "^0.5.1",
     "truffle-flattener": "^1.2.9",
-    "homedir": "^0.6.0"
+    "web3": "^1.2.1"
   }
 }
