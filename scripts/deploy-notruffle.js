@@ -43,7 +43,7 @@ async function deployContract(contractData, sender, args=[]) {
     })
     .then(function(contractInstance) {
       console.log(
-        "Deployed contract Address: \t",
+        "Deployed contract " + contractData.contractName + "\t Address: ",
         contractInstance.options.address
       );
       return contractInstance;
@@ -88,38 +88,26 @@ async function deploy() {
 
 	console.log('Owner:', owner)
 
+	let ensFactory
 	if (!ensAddress) {
 		console.log('=========')
 		console.log('Missing ENS! Deploying a custom ENS...')
 
-		let ensFactory = await deployContract(ENSFactory, owner)
+		ensFactory = await deployContract(ENSFactory, owner)
 
   		let receipt = await ensFactory.methods.newENS(owner).send({
   			from: owner,
   			gas: 6000000,
-  		})
-		 .on('transactionHash', function(hash){
-			console.log(hash)
-		})
-  		.on('receipt', function(receipt) {
-  			console.log(receipt)
-  			return receipt
-  		})
-  		.on('error', function(error) {
-  			console.error(error)
-  			process.exit()
+       	 	gasPrice: 1,
   		})
 
-  		console.log(receipt)
-  		let ensAddress = receipt.logs.filter(l => l.event == 'DeployENS')[0].args.ens
+  		ensAddress = receipt.events["DeployENS"].returnValues['ens']
 
-		console.log('====================')
 		console.log('Deployed ENS:', ensAddress)
-
-		ens = new web3.eth.Contract(ENSFactory.abi, ensAddress)
-	} else {
-		ens = ENS.at(ensAddress)
+		console.log('====================')
 	}
+
+	let ens = new web3.eth.Contract(ENS.abi, ensAddress)
 
 	console.log('ENS:', ensAddress)
 	console.log(`TLD: ${tldName} (${tldHash})`)
@@ -149,18 +137,32 @@ async function deploy() {
 		apmRepoBase.options.address,
 		ensSubdomainRegistrarBase.options.address,
 		ensAddress,
-		'0x00']
+		ensFactory.options.address]
 	)
 
   console.log(`Assigning ENS name (${labelName}.${tldName}) to factory...`)
+  let ensAccount = await ens.methods.owner(apmNode).send({
+		from: owner,
+		gas: 6000000,
+	 	gasPrice: 1,
+	})
 
-  if (await ens.methods.owner(apmNode) === accounts[0]) {
+  if (ensAccount === accounts[0]) {
     console.log('Transferring name ownership from deployer to APMRegistryFactory')
-    await ens.methods.setOwner(apmNode, apmFactory.options.address)
+    await ens.methods.setOwner(apmNode, apmFactory.options.address).send({
+		from: owner,
+		gas: 6000000,
+	 	gasPrice: 1,
+	})
   } else {
-    log('Creating subdomain and assigning it to APMRegistryFactory')
+    console.log('Creating subdomain and assigning it to APMRegistryFactory')
     try {
-      await ens.methods.setSubnodeOwner(tldHash, labelHash, apmFactory.options.address)
+      await ens.methods.setSubnodeOwner(tldHash, labelHash, apmFactory.options.address).send({
+			from: owner,
+			gas: 6000000,
+		 	gasPrice: 1,
+		})
+
     } catch (err) {
       console.error(
         `Error: could not set the owner of '${labelName}.${tldName}' on the given ENS instance`,
@@ -171,13 +173,17 @@ async function deploy() {
   }
 
 	console.log('Deploying APM...')
-	const receipt = await apmFactory.methods.newAPM(tldHash, labelHash, owner)
+	const receipt = await apmFactory.methods.newAPM(tldHash, labelHash, owner).send({
+		from: owner,
+		gas: 7000000,
+	 	gasPrice: 1,
+	})
 
 	console.log('=========')
-	const apmAddr = receipt.logs.filter(l => l.event == 'DeployAPM')[0].args.apm
+	const apmAddr = receipt.events["DeployAPM"].returnValues['apm']//receipt.logs.filter(l => l.event == 'DeployAPM')[0].args.apm
 	console.log('# APM:')
 	console.log('Address:', apmAddr)
-	console.log('Transaction hash:', receipt.tx)
+	console.log('Transaction hash:', receipt.transactionHash)
 	console.log('=========')
 
 	console.log("Done!")
@@ -185,7 +191,7 @@ async function deploy() {
     return {
       apmFactory,
       ens,
-      apm: APMRegistry.at(apmAddr),
+      apm: new web3.eth.Contract(APMRegistry.abi, apmAddr),
     }
 }
 
