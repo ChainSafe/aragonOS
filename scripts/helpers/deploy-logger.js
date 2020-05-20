@@ -15,12 +15,12 @@ module.exports = async (instance, { verbose = true, flattenContracts = true } = 
     compiler: { name: compilerName, version: compilerVersion }
   } = instance.constructor._json
 
-  if (flattenContracts) {
-    const flattenedCode = await flatten([ sourcePath ])
-    mkdirp.sync(FLATTEN_DIR)
-    const savePath = path.join(FLATTEN_DIR, `${contractName}.sol`)
-    fs.writeFileSync(savePath, flattenedCode)
-  }
+  // if (flattenContracts) {
+  //   const flattenedCode = await flatten([ sourcePath ])
+  //   mkdirp.sync(FLATTEN_DIR)
+  //   const savePath = path.join(FLATTEN_DIR, `${contractName}.sol`)
+  //   fs.writeFileSync(savePath, flattenedCode)
+  // }
 
   const optimizer = truffleConfig.solc.optimizer || null
   const optimizerStatus = optimizer && optimizer.enabled ? `${optimizer.runs} runs`: 'Disabled'
