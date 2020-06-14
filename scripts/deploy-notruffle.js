@@ -2,6 +2,8 @@ const Web3 = require("web3");
 const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 const namehash = require('eth-ens-namehash').hash
 const keccak256 = require('js-sha3').keccak_256
+const needle = require('needle');
+const fs = require('fs');
 
 const APMRegistry = require('../build/contracts/APMRegistry')
 const Repo = require('../build/contracts/Repo')
@@ -73,6 +75,51 @@ async function deployDaoFactory(from) {
     }
 }
 
+async function exportGenesisState(addrs) {
+	let genesisState = {}
+
+	for (let addr of addrs) {
+		let data = {
+			jsonrpc:"2.0",
+			method:"eth_exportAccount",
+			params:[addr, "latest"],
+			id:1
+		}
+
+		let options = {
+			json: true,
+		}
+
+		genesisState[addr] = JSON.parse((await needle("post", `http://localhost:8545`, data, options)).body.result)
+	}
+
+	// genesisState.map((addr, genesisState) => {
+	// 	let data = {
+	// 		jsonrpc:"2.0",
+	// 		method:"eth_exportAccount",
+	// 		params:[addr, "latest"],
+	// 		id:1
+	// 	}
+
+	// 	let options = {
+	// 		json: true,
+	// 	}
+
+	// 	genesisState[addr] = needle("post", `http://localhost:8545`, data, options)
+	// 	.then(function(res) {
+	// 		//console.log(res.body.result)
+	// 		return res.body.result
+	// 	}).catch(function(err) {
+	// 		console.error(err)
+	// 	})
+
+	// }) 
+
+	//console.log(genesisState)
+	let data = JSON.stringify(genesisState, null, '\t')
+	fs.writeFileSync('evm_genesis.json', data)
+}
+
 async function deploy() {
 	console.log('Deploying APM...')
 
@@ -121,13 +168,15 @@ async function deploy() {
   	let ensSubdomainRegistrarBase = await deployContract(ENSSubdomainRegistrar, owner)
 
 	let daoFactory
+	let daoFactoryContracts
 	if (daoFactoryAddress) {
 		daoFactory = new web3.eth.Contract(DAOFactory.abi, daoFactoryAddress)
 		const hasEVMScripts = await daoFactory.regFactory() !== ZERO_ADDR
 		console.log(`Using provided DAOFactory (with${hasEVMScripts ? '' : 'out' } EVMScripts):`, daoFactoryAddress)
 	} else {
 		console.log('Deploying DAOFactory with EVMScripts...')
-		daoFactory = (await deployDaoFactory(owner)).daoFactory
+		daoFactoryContracts = await deployDaoFactory(owner)
+		daoFactory = daoFactoryContracts.daoFactory
 	}
 
 	console.log('Deploying APMRegistryFactory...')
@@ -187,6 +236,20 @@ async function deploy() {
 	console.log('=========')
 
 	console.log("Done!")
+
+	await exportGenesisState([
+		ensFactory.options.address,
+		ensAddress,
+		apmRegistryBase.options.address,
+		apmRepoBase.options.address,
+		ensSubdomainRegistrarBase.options.address,
+		daoFactoryContracts.aclBase.options.address,
+      	daoFactoryContracts.daoFactory.options.address,
+      	daoFactoryContracts.evmScriptRegistryFactory.options.address,
+      	daoFactoryContracts.kernelBase.options.address,
+      	apmFactory.options.address,
+      	apmAddr,
+	])
 
     return {
       apmFactory,
